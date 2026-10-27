@@ -51,7 +51,7 @@ pub fn build_db(
         fs::remove_file(&output_path)?;
     }
 
-    let content = create_rust_file(&characters)?;
+    let content = create_rust_file(&characters, options)?;
     let output_path = output_path.as_ref();
 
     fs::write(output_path, content)?;
@@ -59,8 +59,17 @@ pub fn build_db(
     Ok(())
 }
 
-fn create_rust_file(characters: &[Character<u8>]) -> Result<String> {
+fn create_rust_file(characters: &[Character<u8>], opts: &BuildOptions) -> Result<String> {
     let mut code = String::new();
+
+    writeln!(
+        code,
+        r#"pub const CURVE_STEPS: u16 = {};
+pub const GRID_SIZE: u16 = {};
+pub const POINT_DISTANCE: u16 = {};
+"#,
+        opts.curve_steps, opts.grid_size, opts.point_distance,
+    )?;
 
     writeln!(
         code,
