@@ -1,0 +1,9 @@
+[package]
+name = "jikaku"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[build-dependencies]
+jikaku-builder = { path = "../jikaku-builder" }
