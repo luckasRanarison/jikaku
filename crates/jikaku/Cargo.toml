@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 jikaku-bin = { workspace = true }
+jikaku-builder = { workspace = true }
 
 [build-dependencies]
 jikaku-builder = { workspace = true }

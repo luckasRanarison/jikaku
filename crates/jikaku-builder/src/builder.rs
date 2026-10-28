@@ -3,7 +3,11 @@ use std::{fs, path::Path};
 use anyhow::Result;
 use jikaku_bin::encoding::*;
 
-use crate::kanjivg::{Character, parse_kvg};
+use crate::{
+    kanjivg::parse_kvg,
+    processing::{euclidian_reduction, linear_normalization},
+    types::Character,
+};
 
 pub const DEFAULT_CURVE_STEPS: u8 = 20;
 pub const DEFAULT_GRID_SIZE: u16 = 256;
@@ -44,10 +48,14 @@ pub fn build_db(
         if file_name.ends_with(".svg") && !file_name.contains('-') {
             let content = fs::read_to_string(entry.path())?;
             let base_char = parse_kvg(&content, options.curve_steps)?;
-            let normalized_char = base_char.normalize(options.grid_size);
-            let simplified_char = normalized_char.simplify(options.point_distance);
+            let normalized_strokes = linear_normalization(&base_char.strokes, options.grid_size);
+            let simplified_strokes =
+                euclidian_reduction(&normalized_strokes, options.point_distance);
 
-            characters.push(simplified_char);
+            characters.push(Character {
+                id: base_char.id,
+                strokes: simplified_strokes,
+            });
         }
     }
 

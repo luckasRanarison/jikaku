@@ -1,7 +1,7 @@
 use crate::{
     encoding::{POINT_ENTRY_SIZE, STROKE_ENTRY_SIZE},
     reader::BinaryReader,
-    types::{Character, Point, Stroke},
+    types::{CharacterRef, Point, StrokeRef},
 };
 
 #[derive(Debug)]
@@ -12,7 +12,7 @@ pub struct CharacterIterator<'r, 'a> {
 }
 
 impl Iterator for CharacterIterator<'_, '_> {
-    type Item = Character;
+    type Item = CharacterRef;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.remainder == 0 {
@@ -36,7 +36,7 @@ pub struct StrokeIterator<'r, 'a> {
 }
 
 impl Iterator for StrokeIterator<'_, '_> {
-    type Item = Stroke;
+    type Item = StrokeRef;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.remainder == 0 {

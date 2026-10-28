@@ -1,12 +1,12 @@
 #[derive(Debug)]
-pub struct Character {
+pub struct CharacterRef {
     pub id: u32,
     pub stroke_count: u8,
     pub stroke_offset: u32,
 }
 
 #[derive(Debug)]
-pub struct Stroke {
+pub struct StrokeRef {
     pub point_offset: u32,
     pub point_count: u8,
 }
