@@ -4,3 +4,15 @@ pub struct Character {
     pub stroke_count: u8,
     pub stroke_offset: u32,
 }
+
+#[derive(Debug)]
+pub struct Stroke {
+    pub point_offset: u32,
+    pub point_count: u8,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Point {
+    pub x: u8,
+    pub y: u8,
+}

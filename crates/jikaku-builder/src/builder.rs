@@ -38,7 +38,10 @@ pub fn build_db(
         let entry = entry?;
         let file_name = entry.file_name();
 
-        if file_name.to_string_lossy().ends_with(".svg") {
+        let file_name = file_name.to_string_lossy();
+
+        // skip character variants
+        if file_name.ends_with(".svg") && !file_name.contains('-') {
             let content = fs::read_to_string(entry.path())?;
             let base_char = parse_kvg(&content, options.curve_steps)?;
             let normalized_char = base_char.normalize(options.grid_size);
@@ -48,11 +51,7 @@ pub fn build_db(
         }
     }
 
-    characters.sort_by_key(|c| c.strokes.len());
-
-    if output_path.as_ref().exists() {
-        fs::remove_file(&output_path)?;
-    }
+    characters.sort_by_key(|c| (c.strokes.len(), c.id));
 
     let content = create_binary(&characters, options)?;
     let output_path = output_path.as_ref();
@@ -65,32 +64,25 @@ pub fn build_db(
 fn create_binary(characters: &[Character<u8>], options: &BuildOptions) -> Result<Vec<u8>> {
     let mut buffer = Vec::new();
 
-    write_header(&mut buffer, characters, options);
+    write_header(&mut buffer, characters, options)?;
 
-    let mut total_strokes = 0;
-    let mut current_stroke_count = 0;
-    let mut current_char_count = 0_u16;
+    let max_stroke = characters.last().map_or(0, |c| c.strokes.len());
+    let total_strokes: usize = characters.iter().map(|c| c.strokes.len()).sum();
+    let mut start = 0;
 
-    for (idx, ch) in characters.iter().enumerate() {
-        let stroke_count = ch.strokes.len() as u8;
+    for stroke_count in 1..=max_stroke {
+        let mut end = start;
 
-        while current_stroke_count < stroke_count {
-            if idx > 0 {
-                buffer.extend(current_char_count.to_le_bytes());
-            }
-
-            buffer.extend((idx as u16).to_le_bytes());
-            current_stroke_count += 1;
-            current_char_count = 0;
+        while end < characters.len() && characters[end].strokes.len() == stroke_count {
+            end += 1;
         }
 
-        current_char_count += 1;
-        total_strokes += ch.strokes.len();
+        buffer.extend((start as u16).to_le_bytes());
+        buffer.extend(((end - start) as u16).to_le_bytes());
+        start = end;
     }
 
-    buffer.extend(current_char_count.to_le_bytes());
-
-    let header_and_map_size = HEADER_SIZE + (current_stroke_count as usize * CHAR_MAP_ENTRY_SIZE);
+    let header_and_map_size = HEADER_SIZE + (max_stroke * CHAR_MAP_ENTRY_SIZE);
     let char_entries_size = characters.len() * CHAR_ENTRY_SIZE;
     let stroke_entries_size = total_strokes * STROKE_ENTRY_SIZE;
 
@@ -114,7 +106,7 @@ fn create_binary(characters: &[Character<u8>], options: &BuildOptions) -> Result
         current_stroke_entry_offset += (stroke_count as usize * STROKE_ENTRY_SIZE) as u32;
 
         for stroke in &character.strokes {
-            let point_count = stroke.points.len() as u16;
+            let point_count = u8::try_from(stroke.points.len())?;
             let point_offset = current_point_offset;
 
             stroke_entries_buf.extend(point_count.to_le_bytes());
@@ -135,18 +127,22 @@ fn create_binary(characters: &[Character<u8>], options: &BuildOptions) -> Result
     Ok(buffer)
 }
 
-fn write_header(buffer: &mut Vec<u8>, characters: &[Character<u8>], options: &BuildOptions) {
-    let char_count = characters.len() as u16;
-
+fn write_header(
+    buffer: &mut Vec<u8>,
+    characters: &[Character<u8>],
+    options: &BuildOptions,
+) -> Result<()> {
     let max_stroke_count = characters
         .last()
         .map(|c| c.strokes.len())
         .unwrap_or_default();
 
-    buffer.extend(b"KAKU");
-    buffer.extend(char_count.to_le_bytes());
-    buffer.push(max_stroke_count as u8);
+    buffer.extend(MAGIC);
+    buffer.extend(u16::try_from(characters.len())?.to_le_bytes());
+    buffer.push(u8::try_from(max_stroke_count)?);
     buffer.extend(options.grid_size.to_le_bytes());
     buffer.push(options.curve_steps);
     buffer.extend(options.point_distance.to_le_bytes());
+
+    Ok(())
 }

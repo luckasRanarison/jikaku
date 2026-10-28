@@ -7,9 +7,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let kanji_dir = manifest_dir.join("../../submodules/kanjivg/kanji");
     let output_path = manifest_dir.join("./bin/data.bin");
 
-    if !output_path.exists() {
-        build_db(kanji_dir, output_path, &BuildOptions::default())?;
-    }
+    println!("cargo:rerun-if-changed=../../submodules/kanjivg");
+
+    build_db(kanji_dir, output_path, &BuildOptions::default())?;
 
     Ok(())
 }

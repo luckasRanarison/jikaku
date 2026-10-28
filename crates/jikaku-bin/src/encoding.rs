@@ -10,9 +10,11 @@
 // Body (variable length)
 // ----------------------
 // - stroke count to character offset map (6 * n) {index: 2, count: 2}
-// - character entry list (9 * n)
-// - stroke entry list (5 * n)
-// - point list (2 * n)
+// - character entry list (9 * n) {char_id: 4, stroke_count: 1, stroke_offset: 4}
+// - stroke entry list (5 * n) {point_count: 1, point_offset: 4}
+// - point list (2 * n) {x: 1, y: 1}
+
+pub const MAGIC: [u8; 4] = *b"KAKU";
 
 pub const HEADER_SIZE: usize = 11;
 pub const CHAR_ID_SIZE: usize = 4;
