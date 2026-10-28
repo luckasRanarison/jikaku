@@ -1,0 +1,152 @@
+use std::{fs, path::Path};
+
+use anyhow::Result;
+use jikaku_bin::encoding::*;
+
+use crate::kanjivg::{Character, parse_kvg};
+
+pub const DEFAULT_CURVE_STEPS: u8 = 20;
+pub const DEFAULT_GRID_SIZE: u16 = 256;
+pub const DEFAULT_POINT_DISTANCE: u8 = 20;
+
+#[derive(Debug, Clone, Copy)]
+pub struct BuildOptions {
+    pub grid_size: u16,
+    pub curve_steps: u8,
+    pub point_distance: u8,
+}
+
+impl Default for BuildOptions {
+    fn default() -> Self {
+        Self {
+            grid_size: DEFAULT_GRID_SIZE,
+            curve_steps: DEFAULT_CURVE_STEPS,
+            point_distance: DEFAULT_POINT_DISTANCE,
+        }
+    }
+}
+
+pub fn build_db(
+    dir_path: impl AsRef<Path>,
+    output_path: impl AsRef<Path>,
+    options: &BuildOptions,
+) -> Result<()> {
+    let entries = fs::read_dir(dir_path)?;
+    let mut characters = Vec::new();
+
+    for entry in entries {
+        let entry = entry?;
+        let file_name = entry.file_name();
+
+        if file_name.to_string_lossy().ends_with(".svg") {
+            let content = fs::read_to_string(entry.path())?;
+            let base_char = parse_kvg(&content, options.curve_steps)?;
+            let normalized_char = base_char.normalize(options.grid_size);
+            let simplified_char = normalized_char.simplify(options.point_distance);
+
+            characters.push(simplified_char);
+        }
+    }
+
+    characters.sort_by_key(|c| c.strokes.len());
+
+    if output_path.as_ref().exists() {
+        fs::remove_file(&output_path)?;
+    }
+
+    let content = create_binary(&characters, options)?;
+    let output_path = output_path.as_ref();
+
+    fs::write(output_path, content)?;
+
+    Ok(())
+}
+
+fn create_binary(characters: &[Character<u8>], options: &BuildOptions) -> Result<Vec<u8>> {
+    let mut buffer = Vec::new();
+
+    write_header(&mut buffer, characters, options);
+
+    let mut total_strokes = 0;
+    let mut current_stroke_count = 0;
+    let mut current_char_count = 0_u16;
+
+    for (idx, ch) in characters.iter().enumerate() {
+        let stroke_count = ch.strokes.len() as u8;
+
+        while current_stroke_count < stroke_count {
+            if idx > 0 {
+                buffer.extend(current_char_count.to_le_bytes());
+            }
+
+            buffer.extend((idx as u16).to_le_bytes());
+            current_stroke_count += 1;
+            current_char_count = 0;
+        }
+
+        current_char_count += 1;
+        total_strokes += ch.strokes.len();
+    }
+
+    buffer.extend(current_char_count.to_le_bytes());
+
+    let header_and_map_size = HEADER_SIZE + (current_stroke_count as usize * CHAR_MAP_ENTRY_SIZE);
+    let char_entries_size = characters.len() * CHAR_ENTRY_SIZE;
+    let stroke_entries_size = total_strokes * STROKE_ENTRY_SIZE;
+
+    let stroke_entries_base = header_and_map_size + char_entries_size;
+    let points_base = stroke_entries_base + stroke_entries_size;
+
+    let mut char_entries_buf = Vec::with_capacity(char_entries_size);
+    let mut stroke_entries_buf = Vec::with_capacity(stroke_entries_size);
+    let mut points_buf = Vec::new();
+
+    let mut current_stroke_entry_offset = stroke_entries_base as u32;
+    let mut current_point_offset = points_base as u32;
+
+    for character in characters {
+        let stroke_count = character.strokes.len() as u8;
+        let stroke_offset = current_stroke_entry_offset;
+
+        char_entries_buf.extend(character.id.to_le_bytes());
+        char_entries_buf.push(stroke_count);
+        char_entries_buf.extend(stroke_offset.to_le_bytes());
+        current_stroke_entry_offset += (stroke_count as usize * STROKE_ENTRY_SIZE) as u32;
+
+        for stroke in &character.strokes {
+            let point_count = stroke.points.len() as u16;
+            let point_offset = current_point_offset;
+
+            stroke_entries_buf.extend(point_count.to_le_bytes());
+            stroke_entries_buf.extend(point_offset.to_le_bytes());
+            current_point_offset += (stroke.points.len() * POINT_ENTRY_SIZE) as u32;
+
+            for point in &stroke.points {
+                points_buf.push(point.x);
+                points_buf.push(point.y);
+            }
+        }
+    }
+
+    buffer.extend(char_entries_buf);
+    buffer.extend(stroke_entries_buf);
+    buffer.extend(points_buf);
+
+    Ok(buffer)
+}
+
+fn write_header(buffer: &mut Vec<u8>, characters: &[Character<u8>], options: &BuildOptions) {
+    let char_count = characters.len() as u16;
+
+    let max_stroke_count = characters
+        .last()
+        .map(|c| c.strokes.len())
+        .unwrap_or_default();
+
+    buffer.extend(b"KAKU");
+    buffer.extend(char_count.to_le_bytes());
+    buffer.push(max_stroke_count as u8);
+    buffer.extend(options.grid_size.to_le_bytes());
+    buffer.push(options.curve_steps);
+    buffer.extend(options.point_distance.to_le_bytes());
+}

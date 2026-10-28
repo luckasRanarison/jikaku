@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.104"
 roxmltree = "0.21.2"
+jikaku-bin = { workspace = true }

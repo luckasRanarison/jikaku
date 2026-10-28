@@ -41,7 +41,7 @@ impl Character<f32> {
 }
 
 impl Character<u8> {
-    pub fn simplify(self, min_distance: u16) -> Self {
+    pub fn simplify(self, min_distance: u8) -> Self {
         Self {
             id: self.id,
             strokes: self
@@ -76,9 +76,9 @@ impl Stroke<f32> {
 }
 
 impl Stroke<u8> {
-    pub fn simplify(self, min_distance: u16) -> Self {
+    pub fn simplify(self, min_distance: u8) -> Self {
         let mut points = Vec::new();
-        let min_distance = min_distance.pow(2);
+        let min_distance = (min_distance as u32).pow(2);
 
         for (i, point) in self.points.iter().enumerate() {
             if i == 0 || i == self.points.len() - 1 {
@@ -109,7 +109,7 @@ enum Position {
     Relative,
 }
 
-pub fn parse_kvg(content: &str, curve_steps: u16) -> Result<Character<f32>> {
+pub fn parse_kvg(content: &str, curve_steps: u8) -> Result<Character<f32>> {
     let parsing_options = ParsingOptions {
         allow_dtd: true,
         ..Default::default()
@@ -137,7 +137,7 @@ pub fn parse_kvg(content: &str, curve_steps: u16) -> Result<Character<f32>> {
     Ok(Character { id, strokes })
 }
 
-fn resolve_path(node: Node, curve_steps: u16) -> Result<Stroke<f32>> {
+fn resolve_path(node: Node, curve_steps: u8) -> Result<Stroke<f32>> {
     let commands = node.attribute("d").context("missing 'd' attribute")?;
     let resolver = PathResolver::new(commands, curve_steps);
     let points = resolver.resolve()?;
@@ -148,14 +148,14 @@ fn resolve_path(node: Node, curve_steps: u16) -> Result<Stroke<f32>> {
 #[derive(Debug)]
 struct PathResolver<'a> {
     commands: &'a str,
-    curve_steps: u16,
+    curve_steps: u8,
     position: Point<f32>,
     mirror: Point<f32>,
     points: Vec<Point<f32>>,
 }
 
 impl<'a> PathResolver<'a> {
-    fn new(commands: &'a str, curve_steps: u16) -> Self {
+    fn new(commands: &'a str, curve_steps: u8) -> Self {
         Self {
             position: Point::default(),
             mirror: Point::default(),

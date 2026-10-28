@@ -1,4 +1,4 @@
-pub mod db;
+pub mod builder;
 pub mod kanjivg;
 
-pub use db::{BuildOptions, build_db};
+pub use builder::{BuildOptions, build_db};

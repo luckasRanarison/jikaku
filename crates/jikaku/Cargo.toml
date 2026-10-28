@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+jikaku-bin = { workspace = true }
 
 [build-dependencies]
-jikaku-builder = { path = "../jikaku-builder" }
+jikaku-builder = { workspace = true }
