@@ -4,6 +4,7 @@ pub use jikaku_builder::types::{RawPoint, Stroke};
 
 const CANDIDATE_COUNT: usize = 20;
 
+// FIXME: should be allocation free
 pub fn match_kanji(strokes: &[Stroke<RawPoint>]) -> [u32; CANDIDATE_COUNT] {
     static DATA: &[u8] = include_bytes!("../bin/data.bin");
 
