@@ -1,7 +1,7 @@
 use anyhow::{Context, Result, anyhow};
 use roxmltree::{Document, Node, ParsingOptions};
 
-use crate::types::{Character, Point, Stroke};
+use crate::types::{Character, RawPoint, Stroke};
 
 #[derive(Debug, Clone, Copy)]
 enum Position {
@@ -9,7 +9,7 @@ enum Position {
     Relative,
 }
 
-pub fn parse_kvg(content: &str, curve_steps: u8) -> Result<Character<f32>> {
+pub fn parse_kvg(content: &str, curve_steps: u8) -> Result<Character<RawPoint>> {
     let parsing_options = ParsingOptions {
         allow_dtd: true,
         ..Default::default()
@@ -37,7 +37,7 @@ pub fn parse_kvg(content: &str, curve_steps: u8) -> Result<Character<f32>> {
     Ok(Character { id, strokes })
 }
 
-fn resolve_path(node: Node, curve_steps: u8) -> Result<Stroke<f32>> {
+fn resolve_path(node: Node, curve_steps: u8) -> Result<Stroke<RawPoint>> {
     let commands = node.attribute("d").context("missing 'd' attribute")?;
     let resolver = PathResolver::new(commands, curve_steps);
     let points = resolver.resolve()?;
@@ -49,23 +49,23 @@ fn resolve_path(node: Node, curve_steps: u8) -> Result<Stroke<f32>> {
 struct PathResolver<'a> {
     commands: &'a str,
     curve_steps: u8,
-    position: Point<f32>,
-    mirror: Point<f32>,
-    points: Vec<Point<f32>>,
+    position: RawPoint,
+    mirror: RawPoint,
+    points: Vec<RawPoint>,
 }
 
 impl<'a> PathResolver<'a> {
     fn new(commands: &'a str, curve_steps: u8) -> Self {
         Self {
-            position: Point::default(),
-            mirror: Point::default(),
+            position: RawPoint::default(),
+            mirror: RawPoint::default(),
             points: Vec::new(),
             curve_steps,
             commands,
         }
     }
 
-    fn resolve(mut self) -> Result<Vec<Point<f32>>> {
+    fn resolve(mut self) -> Result<Vec<RawPoint>> {
         while let Some(cmd) = self.commands.chars().next() {
             self.commands = &self.commands[1..];
 
@@ -87,7 +87,7 @@ impl<'a> PathResolver<'a> {
         let p0 = self.position;
 
         let p1 = if smooth {
-            Point {
+            RawPoint {
                 x: (self.position.x - self.mirror.x) + self.position.x,
                 y: (self.position.y - self.mirror.y) + self.position.y,
             }
@@ -103,7 +103,7 @@ impl<'a> PathResolver<'a> {
             let x = self.interpolate(t, p0.x, p1.x, p2.x, p3.x);
             let y = self.interpolate(t, p0.y, p1.y, p2.y, p3.y);
 
-            self.points.push(Point { x, y });
+            self.points.push(RawPoint { x, y });
         }
 
         self.mirror = p2;
@@ -121,7 +121,7 @@ impl<'a> PathResolver<'a> {
         Ok(())
     }
 
-    fn take_point(&mut self, position: Position) -> Result<Point<f32>> {
+    fn take_point(&mut self, position: Position) -> Result<RawPoint> {
         let mut x = self.take_number()?;
         let mut y = self.take_number()?;
 
@@ -130,7 +130,7 @@ impl<'a> PathResolver<'a> {
             y += self.position.y;
         }
 
-        Ok(Point { x, y })
+        Ok(RawPoint { x, y })
     }
 
     fn skip_separator(&mut self) {

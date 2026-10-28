@@ -74,4 +74,11 @@ impl Iterator for PointIterator<'_, '_> {
 
         Some(value)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.remainder as usize;
+        (len, Some(len))
+    }
 }
+
+impl ExactSizeIterator for PointIterator<'_, '_> {}

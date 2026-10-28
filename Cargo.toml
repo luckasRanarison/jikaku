@@ -1,7 +1,13 @@
 [workspace]
 resolver = "3"
-members = ["crates/jikaku", "crates/jikaku-bin", "crates/jikaku-builder"]
+members = [
+    "crates/jikaku",
+    "crates/jikaku-bin",
+    "crates/jikaku-builder",
+    "crates/jikaku-wasm",
+]
 
 [workspace.dependencies]
+jikaku = { path = "./crates/jikaku" }
 jikaku-bin = { path = "./crates/jikaku-bin" }
 jikaku-builder = { path = "./crates/jikaku-builder" }

@@ -6,11 +6,11 @@ pub struct Character<T> {
 
 #[derive(Debug)]
 pub struct Stroke<T> {
-    pub points: Vec<Point<T>>,
+    pub points: Vec<T>,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
-pub struct Point<T> {
-    pub x: T,
-    pub y: T,
+pub struct RawPoint {
+    pub x: f32,
+    pub y: f32,
 }

@@ -1,7 +1,7 @@
 use std::{fs, path::Path};
 
 use anyhow::Result;
-use jikaku_bin::encoding::*;
+use jikaku_bin::{encoding::*, types::Point};
 
 use crate::{
     kanjivg::parse_kvg,
@@ -69,7 +69,7 @@ pub fn build_db(
     Ok(())
 }
 
-fn create_binary(characters: &[Character<u8>], options: &BuildOptions) -> Result<Vec<u8>> {
+fn create_binary(characters: &[Character<Point>], options: &BuildOptions) -> Result<Vec<u8>> {
     let mut buffer = Vec::new();
 
     write_header(&mut buffer, characters, options)?;
@@ -137,7 +137,7 @@ fn create_binary(characters: &[Character<u8>], options: &BuildOptions) -> Result
 
 fn write_header(
     buffer: &mut Vec<u8>,
-    characters: &[Character<u8>],
+    characters: &[Character<Point>],
     options: &BuildOptions,
 ) -> Result<()> {
     let max_stroke_count = characters

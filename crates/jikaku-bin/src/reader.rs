@@ -23,15 +23,15 @@ impl<'a> BinaryReader<'a> {
     }
 
     pub fn get_grid_size(&self) -> u16 {
-        self.read_u16(0x7).into()
+        self.read_u16(0x7)
     }
 
     pub fn get_curve_points(&self) -> u8 {
-        self.read_u8(0x9).into()
+        self.read_u8(0x9)
     }
 
     pub fn get_min_point_distance(&self) -> u8 {
-        self.read_u8(0xA).into()
+        self.read_u8(0xA)
     }
 
     pub fn get_char_map(&self, stroke_count: usize) -> (u16, u16) {
@@ -42,14 +42,18 @@ impl<'a> BinaryReader<'a> {
         (char_idx, char_count)
     }
 
-    pub fn get_chars_by_stroke(&self, stroke_count: usize) -> CharacterIterator<'_, 'a> {
+    pub fn get_chars_by_stroke(&self, stroke_count: usize) -> Option<CharacterIterator<'_, 'a>> {
+        if stroke_count > self.get_max_stroke() {
+            return None;
+        }
+
         let (char_idx, char_count) = self.get_char_map(stroke_count);
 
-        CharacterIterator {
+        Some(CharacterIterator {
             index: char_idx,
             remainder: char_count,
             reader: self,
-        }
+        })
     }
 
     pub fn get_char_by_index(&self, index: u16) -> CharacterRef {

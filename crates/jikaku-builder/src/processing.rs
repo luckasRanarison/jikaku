@@ -1,6 +1,8 @@
-use crate::types::{Point, Stroke};
+use jikaku_bin::types::Point;
 
-pub fn linear_normalization(strokes: &[Stroke<f32>], grid_size: u16) -> Vec<Stroke<u8>> {
+use crate::types::{RawPoint, Stroke};
+
+pub fn linear_normalization(strokes: &[Stroke<RawPoint>], grid_size: u16) -> Vec<Stroke<Point>> {
     let mut min_x = f32::MAX;
     let mut min_y = f32::MAX;
     let mut max_x = 0.0;
@@ -20,12 +22,12 @@ pub fn linear_normalization(strokes: &[Stroke<f32>], grid_size: u16) -> Vec<Stro
     let ratio = vratio.min(hratio);
 
     strokes
-        .into_iter()
+        .iter()
         .map(|s| map_stroke(s, min_x, min_y, ratio))
         .collect()
 }
 
-fn map_stroke(stroke: &Stroke<f32>, x_start: f32, y_start: f32, ratio: f32) -> Stroke<u8> {
+fn map_stroke(stroke: &Stroke<RawPoint>, x_start: f32, y_start: f32, ratio: f32) -> Stroke<Point> {
     let points = stroke
         .points
         .iter()
@@ -40,14 +42,14 @@ fn map_stroke(stroke: &Stroke<f32>, x_start: f32, y_start: f32, ratio: f32) -> S
     Stroke { points }
 }
 
-pub fn euclidian_reduction(strokes: &[Stroke<u8>], min_distance: u8) -> Vec<Stroke<u8>> {
+pub fn euclidian_reduction(strokes: &[Stroke<Point>], min_distance: u8) -> Vec<Stroke<Point>> {
     strokes
         .iter()
         .map(|s| reduce_stroke(s, min_distance))
         .collect()
 }
 
-fn reduce_stroke(stroke: &Stroke<u8>, min_distance: u8) -> Stroke<u8> {
+fn reduce_stroke(stroke: &Stroke<Point>, min_distance: u8) -> Stroke<Point> {
     let mut points = Vec::new();
     let min_distance = (min_distance as u32).pow(2);
 
