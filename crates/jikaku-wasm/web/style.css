@@ -50,6 +50,7 @@ button {
 }
 
 #match-container .match {
+  cursor: default;
   padding: 0.5rem 0.8rem;
   border: 1px solid gray;
   border-radius: 5px;

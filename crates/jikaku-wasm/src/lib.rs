@@ -1,8 +1,14 @@
 use jikaku::{RawPoint, Stroke};
 use wasm_bindgen::prelude::*;
 
+#[wasm_bindgen]
+pub struct Candidate {
+    pub id: u32,
+    pub distance: f64,
+}
+
 #[wasm_bindgen(js_name = matchKanji)]
-pub fn match_kanji(strokes: JsValue) -> Result<Vec<u32>, JsError> {
+pub fn match_kanji(strokes: JsValue) -> Result<Vec<Candidate>, JsError> {
     let strokes: Vec<Vec<[f32; 2]>> = serde_wasm_bindgen::from_value(strokes)
         .map_err(|error| JsError::new(&error.to_string()))?;
 
@@ -15,6 +21,10 @@ pub fn match_kanji(strokes: JsValue) -> Result<Vec<u32>, JsError> {
 
     Ok(jikaku::match_kanji(&strokes)
         .into_iter()
-        .filter(|&id| id != u32::MAX)
+        .filter(|c| c.id != u32::MAX)
+        .map(|c| Candidate {
+            id: c.id,
+            distance: c.distance,
+        })
         .collect())
 }
