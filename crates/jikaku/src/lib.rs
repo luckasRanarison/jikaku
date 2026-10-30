@@ -20,7 +20,7 @@ impl Default for Candidate {
     }
 }
 
-pub fn match_kanji(strokes: &[Stroke<RawPoint>]) -> [Candidate; CANDIDATE_COUNT] {
+pub fn match_character(strokes: &[Stroke<RawPoint>]) -> [Candidate; CANDIDATE_COUNT] {
     static DATA: &[u8] = include_bytes!("../bin/data.bin");
 
     let reader = BinaryReader::new(DATA);
@@ -84,7 +84,7 @@ where
             _ => (n - 1) / (m - 1) * i,
         };
 
-        while let Some((k, s2)) = longest_iter.next() {
+        for (k, s2) in longest_iter.by_ref() {
             if j >= k {
                 distance += s1.x.abs_diff(s2.x) as u32 + s1.y.abs_diff(s2.y) as u32;
                 break;
@@ -92,7 +92,7 @@ where
         }
     }
 
-    distance as f64 / m as f64
+    (n as f64 * distance as f64) / m as f64
 }
 
 fn insert_candidate(candidates: &mut [Candidate; CANDIDATE_COUNT], id: u32, distance: f64) {

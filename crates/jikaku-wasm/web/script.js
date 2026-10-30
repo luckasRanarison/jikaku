@@ -1,4 +1,4 @@
-import init, { matchKanji } from "./pkg/jikaku_wasm.js";
+import init, { matchCharacter } from "./pkg/jikaku_wasm.js";
 
 await init();
 
@@ -43,7 +43,7 @@ clearButton.addEventListener("click", () => {
 });
 
 matchButton.addEventListener("click", () => {
-  const candidates = matchKanji(strokes);
+  const candidates = matchCharacter(strokes);
 
   matchContainer.innerHTML = candidates
     .map(

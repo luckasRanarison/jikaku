@@ -1,3 +1,5 @@
+use std::ffi::OsString;
+
 use anyhow::{Context, Result, anyhow};
 use roxmltree::{Document, Node, ParsingOptions};
 
@@ -35,6 +37,25 @@ pub fn parse_kvg(content: &str, curve_steps: u8) -> Result<Character<RawPoint>> 
         .collect::<Result<Vec<_>>>()?;
 
     Ok(Character { id, strokes })
+}
+
+pub fn is_valid_file(file_name: OsString) -> bool {
+    let file_name = file_name.to_string_lossy();
+
+    if !file_name.ends_with(".svg") && file_name.contains('-') {
+        return false;
+    }
+
+    let Some((char_code_str, _)) = file_name.split_once(['-', '.']) else {
+        return false;
+    };
+
+    let Ok(char_code) = u32::from_str_radix(char_code_str, 16) else {
+        return false;
+    };
+
+    // TODO: exclude more char codes?
+    !matches!(char_code, 0x2F00..0x2FD5 | 0x2E80..0x2EF3)
 }
 
 fn resolve_path(node: Node, curve_steps: u8) -> Result<Stroke<RawPoint>> {

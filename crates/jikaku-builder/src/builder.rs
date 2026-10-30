@@ -4,7 +4,7 @@ use anyhow::Result;
 use jikaku_bin::{encoding::*, types::Point};
 
 use crate::{
-    kanjivg::parse_kvg,
+    kanjivg::{is_valid_file, parse_kvg},
     processing::{euclidian_reduction, linear_normalization},
     types::Character,
 };
@@ -40,23 +40,21 @@ pub fn build_db(
 
     for entry in entries {
         let entry = entry?;
-        let file_name = entry.file_name();
+        let raw_file_name = entry.file_name();
 
-        let file_name = file_name.to_string_lossy();
-
-        // skip character variants
-        if file_name.ends_with(".svg") && !file_name.contains('-') {
-            let content = fs::read_to_string(entry.path())?;
-            let base_char = parse_kvg(&content, options.curve_steps)?;
-            let normalized_strokes = linear_normalization(&base_char.strokes, options.grid_size);
-            let simplified_strokes =
-                euclidian_reduction(&normalized_strokes, options.point_distance);
-
-            characters.push(Character {
-                id: base_char.id,
-                strokes: simplified_strokes,
-            });
+        if !is_valid_file(raw_file_name) {
+            continue;
         }
+
+        let content = fs::read_to_string(entry.path())?;
+        let base_char = parse_kvg(&content, options.curve_steps)?;
+        let normalized_strokes = linear_normalization(&base_char.strokes, options.grid_size);
+        let simplified_strokes = euclidian_reduction(&normalized_strokes, options.point_distance);
+
+        characters.push(Character {
+            id: base_char.id,
+            strokes: simplified_strokes,
+        });
     }
 
     characters.sort_by_key(|c| (c.strokes.len(), c.id));

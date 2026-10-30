@@ -7,8 +7,8 @@ pub struct Candidate {
     pub distance: f64,
 }
 
-#[wasm_bindgen(js_name = matchKanji)]
-pub fn match_kanji(strokes: JsValue) -> Result<Vec<Candidate>, JsError> {
+#[wasm_bindgen(js_name = matchCharacter)]
+pub fn match_character(strokes: JsValue) -> Result<Vec<Candidate>, JsError> {
     let strokes: Vec<Vec<[f32; 2]>> = serde_wasm_bindgen::from_value(strokes)
         .map_err(|error| JsError::new(&error.to_string()))?;
 
@@ -19,7 +19,7 @@ pub fn match_kanji(strokes: JsValue) -> Result<Vec<Candidate>, JsError> {
         })
         .collect();
 
-    Ok(jikaku::match_kanji(&strokes)
+    Ok(jikaku::match_character(&strokes)
         .into_iter()
         .filter(|c| c.id != u32::MAX)
         .map(|c| Candidate {
