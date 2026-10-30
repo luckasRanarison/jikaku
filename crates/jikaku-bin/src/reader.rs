@@ -22,16 +22,16 @@ impl<'a> BinaryReader<'a> {
         self.read_u8(0x6).into()
     }
 
-    pub fn get_grid_size(&self) -> u16 {
-        self.read_u16(0x7)
+    pub fn get_grid_size(&self) -> u8 {
+        self.read_u8(0x7)
     }
 
     pub fn get_curve_points(&self) -> u8 {
-        self.read_u8(0x9)
+        self.read_u8(0x8)
     }
 
     pub fn get_min_point_distance(&self) -> u8 {
-        self.read_u8(0xA)
+        self.read_u8(0x9)
     }
 
     pub fn get_char_map(&self, stroke_count: usize) -> (u16, u16) {

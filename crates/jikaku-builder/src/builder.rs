@@ -10,12 +10,12 @@ use crate::{
 };
 
 pub const DEFAULT_CURVE_STEPS: u8 = 20;
-pub const DEFAULT_GRID_SIZE: u16 = 256;
+pub const DEFAULT_GRID_SIZE: u8 = 255;
 pub const DEFAULT_POINT_DISTANCE: u8 = 20;
 
 #[derive(Debug, Clone, Copy)]
 pub struct BuildOptions {
-    pub grid_size: u16,
+    pub grid_size: u8,
     pub curve_steps: u8,
     pub point_distance: u8,
 }
@@ -146,7 +146,7 @@ fn write_header(
     buffer.extend(MAGIC);
     buffer.extend(u16::try_from(characters.len())?.to_le_bytes());
     buffer.push(u8::try_from(max_stroke_count)?);
-    buffer.extend(options.grid_size.to_le_bytes());
+    buffer.push(options.grid_size);
     buffer.push(options.curve_steps);
     buffer.extend(options.point_distance.to_le_bytes());
 

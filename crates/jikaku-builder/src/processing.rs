@@ -2,7 +2,7 @@ use jikaku_bin::types::Point;
 
 use crate::types::{RawPoint, Stroke};
 
-pub fn linear_normalization(strokes: &[Stroke<RawPoint>], grid_size: u16) -> Vec<Stroke<Point>> {
+pub fn linear_normalization(strokes: &[Stroke<RawPoint>], grid_size: u8) -> Vec<Stroke<Point>> {
     let mut min_x = f32::MAX;
     let mut min_y = f32::MAX;
     let mut max_x = 0.0;
