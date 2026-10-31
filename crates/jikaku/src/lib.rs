@@ -1,9 +1,23 @@
+mod utils;
+
 pub use jikaku_builder::types::{RawPoint, Stroke};
 
-use jikaku_bin::{reader::BinaryReader, types::Point};
+use jikaku_bin::{
+    reader::BinaryReader,
+    types::{CharacterRef, Point},
+};
 use jikaku_builder::processing::{euclidian_reduction, linear_normalization};
 
+static DATA: &[u8] = include_bytes!("../bin/data.bin");
+
+static READER: BinaryReader = BinaryReader::new(DATA);
+
+const GRID_SIZE: u8 = READER.get_grid_size();
+const MIN_POINT_DISTANCE: u8 = READER.get_min_point_distance();
+
 const CANDIDATE_COUNT: usize = 20;
+const STROKE_THRESHOLD: usize = 3;
+const MAP_SIZE: usize = 35;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Candidate {
@@ -20,35 +34,41 @@ impl Default for Candidate {
     }
 }
 
-pub fn match_character(strokes: &[Stroke<RawPoint>]) -> [Candidate; CANDIDATE_COUNT] {
-    static DATA: &[u8] = include_bytes!("../bin/data.bin");
+type CandidateList = [Candidate; CANDIDATE_COUNT];
 
-    let reader = BinaryReader::new(DATA);
-    let normalized = linear_normalization(strokes, reader.get_grid_size());
-    let reduced = euclidian_reduction(&normalized, reader.get_min_point_distance());
-    let stroke_count = reduced.len();
+pub fn match_character(strokes: &[Stroke<RawPoint>]) -> CandidateList {
+    let normalized = linear_normalization(strokes, GRID_SIZE);
+    let input_strokes = euclidian_reduction(&normalized, MIN_POINT_DISTANCE);
+    let stroke_count = input_strokes.len();
 
     let mut candidates = [Candidate::default(); CANDIDATE_COUNT];
 
-    let Some(characters) = reader.get_chars_by_stroke(stroke_count) else {
+    let Some(characters) = READER.get_chars_by_stroke(stroke_count) else {
         return candidates;
     };
 
     for character in characters {
-        let mut distance = 0.0;
-
-        for (input_stroke, stroke) in reduced.iter().zip(reader.get_strokes(&character)) {
-            distance += stroke_distance(
-                input_stroke.points.iter().copied(),
-                reader.get_points(&stroke),
-            );
-        }
-
-        insert_candidate(&mut candidates, character.id, distance);
+        test_character(&character, &input_strokes, &mut candidates);
     }
 
     candidates
 }
+
+fn test_character(
+    character: &CharacterRef,
+    input_strokes: &[Stroke<Point>],
+    candidates: &mut CandidateList,
+) {
+    let mut distance = 0.0;
+
+    for (input, strokes) in input_strokes.iter().zip(character.strokes()) {
+        distance += stroke_distance(input.points.iter().copied(), strokes.points());
+    }
+
+    insert_candidate(candidates, character.id, distance);
+}
+
+// fn init_stroke_map() {}
 
 fn stroke_distance<I, J>(first: I, second: J) -> f64
 where
@@ -95,7 +115,7 @@ where
     (n as f64 * distance as f64) / m as f64
 }
 
-fn insert_candidate(candidates: &mut [Candidate; CANDIDATE_COUNT], id: u32, distance: f64) {
+fn insert_candidate(candidates: &mut CandidateList, id: u32, distance: f64) {
     if distance.is_infinite() {
         return;
     }

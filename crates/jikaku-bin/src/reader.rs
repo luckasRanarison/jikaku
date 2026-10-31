@@ -1,6 +1,7 @@
 use crate::{
-    encoding::{CHAR_ENTRY_SIZE, CHAR_MAP_ENTRY_SIZE, HEADER_SIZE},
-    iterator::{CharacterIterator, PointIterator, StrokeIterator},
+    encoding::{
+        CHAR_ENTRY_SIZE, CHAR_MAP_ENTRY_SIZE, HEADER_SIZE, POINT_ENTRY_SIZE, STROKE_ENTRY_SIZE,
+    },
     types::{CharacterRef, Point, StrokeRef},
 };
 
@@ -10,7 +11,7 @@ pub struct BinaryReader<'a> {
 }
 
 impl<'a> BinaryReader<'a> {
-    pub fn new(data: &'a [u8]) -> Self {
+    pub const fn new(data: &'a [u8]) -> Self {
         Self { data }
     }
 
@@ -22,15 +23,15 @@ impl<'a> BinaryReader<'a> {
         self.read_u8(0x6).into()
     }
 
-    pub fn get_grid_size(&self) -> u8 {
+    pub const fn get_grid_size(&self) -> u8 {
         self.read_u8(0x7)
     }
 
-    pub fn get_curve_points(&self) -> u8 {
+    pub const fn get_curve_points(&self) -> u8 {
         self.read_u8(0x8)
     }
 
-    pub fn get_min_point_distance(&self) -> u8 {
+    pub const fn get_min_point_distance(&self) -> u8 {
         self.read_u8(0x9)
     }
 
@@ -42,51 +43,44 @@ impl<'a> BinaryReader<'a> {
         (char_idx, char_count)
     }
 
-    pub fn get_chars_by_stroke(&self, stroke_count: usize) -> Option<CharacterIterator<'_, 'a>> {
+    pub fn get_chars_by_stroke(
+        &self,
+        stroke_count: usize,
+    ) -> Option<impl ExactSizeIterator<Item = CharacterRef<'_>>> {
         if stroke_count > self.get_max_stroke() {
             return None;
         }
 
         let (char_idx, char_count) = self.get_char_map(stroke_count);
 
-        Some(CharacterIterator {
-            index: char_idx,
-            remainder: char_count,
-            reader: self,
-        })
+        Some(
+            (char_idx..char_idx + char_count)
+                .into_iter()
+                .map(|i| self.get_char_by_index(i.into())),
+        )
     }
 
-    pub fn get_char_by_index(&self, index: u16) -> CharacterRef {
+    pub fn get_char_by_index(&self, index: u16) -> CharacterRef<'_> {
         let offset = self.get_char_block_start() + index as usize * CHAR_ENTRY_SIZE;
 
         CharacterRef {
             id: self.read_u32(offset),
             stroke_count: self.read_u8(offset + 4),
             stroke_offset: self.read_u32(offset + 5),
-        }
-    }
-
-    pub fn get_strokes(&self, character: &CharacterRef) -> StrokeIterator<'_, 'a> {
-        StrokeIterator {
-            offset: character.stroke_offset,
-            remainder: character.stroke_count,
             reader: self,
         }
     }
 
-    pub fn get_points(&self, stroke: &StrokeRef) -> PointIterator<'_, 'a> {
-        PointIterator {
-            offset: stroke.point_offset,
-            remainder: stroke.point_count,
-            reader: self,
-        }
-    }
-
-    pub fn get_stroke(&self, offset: usize) -> StrokeRef {
+    pub fn get_stroke(&self, offset: usize) -> StrokeRef<'_> {
         StrokeRef {
             point_count: self.read_u8(offset),
             point_offset: self.read_u32(offset + 1),
+            reader: self,
         }
+    }
+
+    pub fn get_stroke_at(&self, index: usize, character: &CharacterRef) -> StrokeRef<'_> {
+        self.get_stroke(character.stroke_offset as usize + (index * STROKE_ENTRY_SIZE))
     }
 
     pub fn get_point(&self, offset: usize) -> Point {
@@ -96,11 +90,15 @@ impl<'a> BinaryReader<'a> {
         }
     }
 
+    pub fn get_point_at(&self, index: usize, stroke: &StrokeRef) -> Point {
+        self.get_point(stroke.point_offset as usize + (index * POINT_ENTRY_SIZE))
+    }
+
     fn get_char_block_start(&self) -> usize {
         HEADER_SIZE + self.get_max_stroke() * CHAR_MAP_ENTRY_SIZE
     }
 
-    fn read_u8(&self, offset: usize) -> u8 {
+    const fn read_u8(&self, offset: usize) -> u8 {
         self.data[offset]
     }
 
